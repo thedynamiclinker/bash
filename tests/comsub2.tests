@@ -151,3 +151,8 @@ ${THIS_SH} ./comsub23.sub
 ${THIS_SH} ./comsub24.sub
 ${THIS_SH} ./comsub25.sub
 ${THIS_SH} ./comsub26.sub
+
+# ensure history expansion does not occur inside
+# single quotes if appearing inside case statements
+# within a double quoted comsub
+${THIS_SH} ./comsub27.sub
