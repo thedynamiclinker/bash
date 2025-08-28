@@ -1577,6 +1577,7 @@ get_word:
       /* delimiter must be set and set to something other than a quote if
 	 nestdelim is set, so these tests are safe. */
       if (nestdelim && string[i] == delimopen)
+          printf("nestdelim && string[i] == delimopen == '%c'. Is this the error?\n", delimopen);
 	{
 	  nestdelim++;
 	  continue;
@@ -1610,10 +1611,13 @@ get_word:
 	  continue;
 	}
       
-      if (delimiter == 0 && (member (string[i], history_word_delimiters)))
+      if (delimiter == 0 && (member (string[i], history_word_delimiters))) {
+        printf("delimiter == 0 && (member (string[i], history_word_delimiters)). string[i] == '%c'. Is this the error?\n", string[i]);
 	break;
+    }
 
       if (delimiter == 0 && member (string[i], HISTORY_QUOTE_CHARACTERS))
+        printf("delimiter == 0 && (member (string[i], HISTORY_QUOTE_CHARACTERS)). string[i] == '%c'. Is this the error?\n", string[i]);
 	delimiter = string[i];
     }
 
