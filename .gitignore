@@ -26,6 +26,8 @@ bash
 bashbug
 bashversion
 
+buildconf.h
+
 TAGS
 tags
 
@@ -39,6 +41,7 @@ builtins/psize.aux
 
 doc/Makefile
 examples/loadables/Makefile
+examples/loadables/Makefile.sample
 examples/loadables/Makefile.inc
 examples/loadables/perl/Makefile
 lib/glob/Makefile
