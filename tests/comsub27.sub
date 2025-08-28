@@ -2,7 +2,7 @@
 # to stderr from incorrectly performing history expansion
 # in interactive mode
 
-: ${BASH:=./bash}
+: ${THIS_SH:=./bash}
 
 file=$(mktemp)
 
@@ -10,7 +10,7 @@ cat > $file << 'EOF'
 echo "$(case a in b) echo 'hi!';; esac)"
 EOF
 
-output="$($BASH -i $file 2>&1)"
+output="$($THIS_SH -i $file 2>&1)"
 
 rm -f "$file"
 
