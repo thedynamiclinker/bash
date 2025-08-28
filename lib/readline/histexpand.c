@@ -1583,7 +1583,7 @@ get_word:
 	}
       if (nestdelim && string[i] == delimiter)
 	{
-          printf("nestdelim && string[i] == delimeter == '%c'. Is this the error?\n", delimeter);
+          printf("nestdelim && string[i] == delimiter == '%c'. Is this the error?\n", delimiter);
 	  nestdelim--;
 	  if (nestdelim == 0)
 	    delimiter = 0;
@@ -1592,7 +1592,7 @@ get_word:
       
       if (delimiter && string[i] == delimiter)
 	{
-          printf("delimeter && string[i] == delimeter == '%c'. Is this the error?\n", delimeter);
+          printf("delimiter && string[i] == delimiter == '%c'. Is this the error?\n", delimiter);
 	  delimiter = 0;
 	  continue;
 	}
@@ -1600,7 +1600,7 @@ get_word:
       /* Command and process substitution; shell extended globbing patterns */
       if (nestdelim == 0 && delimiter == 0 && member (string[i], "<>$!@?+*") && string[i+1] == '(') /*)*/
 	{
-          printf("nestdelim == 0 && delimeter == 0 && blah blah. Is this the error?\n", delimeter);
+          printf("nestdelim == 0 && delimiter == 0 && blah blah. Is this the error?\n", delimiter);
 	  i++;			/* string[i] == '(' */ /*)*/
 	  if (string[i+1] == 0)
 	    break;		/* could just return i here */
