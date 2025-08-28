@@ -909,7 +909,6 @@ history_expand (const char *hstring, char **output)
   int i, r, passc, cc, modified, eindex, only_printing, dquote, squote, flag;
   size_t l;
   char *string;
-  int cmdsub_depth_scan, cmdsub_depth_emit;
 
   /* The output string, and its length. */
   size_t result_len;
@@ -969,8 +968,6 @@ history_expand (const char *hstring, char **output)
       string = (char *)hstring;
       /* If not quick substitution, still maybe have to do expansion. */
 
-      cmdsub_depth_scan = 0;
-
       /* `!' followed by one of the characters in history_no_expand_chars
 	 is NOT an expansion. */
       dquote = history_quoting_state == '"';
@@ -1004,19 +1001,6 @@ history_expand (const char *hstring, char **output)
 		}
 	    }
 #endif /* HANDLE_MULTIBYTE */
-
-	  /* Track entry into command substitution: $( ... ) */
-	  if (string[i] == '$' && string[i+1] == '(')
-	    {
-	      cmdsub_depth_scan++;
-	      continue;  /* keep scanning; quotes handled below */
-	    }
-	  /* Track exit from command substitution */
-	  if (string[i] == ')' && cmdsub_depth_scan > 0)
-	    {
-	      cmdsub_depth_scan--;
-	      continue;
-	    }
 
 	  cc = string[i + 1];
 	  /* The history_comment_char, if set, appearing at the beginning
@@ -1065,10 +1049,7 @@ history_expand (const char *hstring, char **output)
 	    {
 	      dquote = 1 - dquote;
 	    }
-	  /* Inside $( ... ) (possibly nested), single quotes must still
-	     inhibit history expansion even if the outer scan is in dquote. */
-	  else if (history_quotes_inhibit_expansion && string[i] == '\'' &&
-		   (dquote == 0 || cmdsub_depth_scan > 0))
+	  else if (dquote == 0 && history_quotes_inhibit_expansion && string[i] == '\'')
 	    {
 	      /* If this is bash, single quotes inhibit history expansion. */
 	      flag = (i > 0 && string[i - 1] == '$');
@@ -1099,7 +1080,6 @@ history_expand (const char *hstring, char **output)
     }
 
   /* Extract and perform the substitution. */
-  cmdsub_depth_emit = 0;
   dquote = history_quoting_state == '"';
   squote = history_quoting_state == '\'';
 
@@ -1162,18 +1142,6 @@ history_expand (const char *hstring, char **output)
       else if (tchar == history_comment_char)
 	tchar = -2;
 
-      /* Track $(...) depth during emit phase as well, so that
-	 single-quoted regions inside command substitution still
-	 inhibit history expansion and are copied literally. */
-      if (tchar == '$' && string[i+1] == '(')
-	{
-	  cmdsub_depth_emit++;
-	}
-      else if (string[i] == ')' && cmdsub_depth_emit > 0)
-	{
-	  cmdsub_depth_emit--;
-	}
-
       switch (tchar)
 	{
 	default:
@@ -1194,23 +1162,14 @@ history_expand (const char *hstring, char **output)
 	  {
 	    /* If history_quotes_inhibit_expansion is set, single quotes
 	       inhibit history expansion, otherwise they are treated like
-	       double quotes.
-
-	       Even when dquote is set (outer "..."), a single
-	       quote inside $( ... ) should still inhibit expansion,
-	       so do that when cmdsub_depth_emit > 0. */
+	       double quotes. */
 	    if (squote)
 	      {
 	        squote = 0;
 	        ADD_CHAR (tchar);
 	      }
-	    else if (history_quotes_inhibit_expansion &&
-		     (dquote == 0) || (dquote != 0 && cmdsub_depth_emit > 0))
+	    else if (dquote == 0 && history_quotes_inhibit_expansion)
 	      {
-		/* In the dquote != 0 case, we've got an outer dquote,
-		   but we're inside $( ... ). Single quotes *are* special
-		   here; copy as a single unit
-		   so any '!' inside is not treated as history. */
 		int quote, slen;
 
 		flag = (i > 0 && string[i - 1] == '$');
