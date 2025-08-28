@@ -1577,14 +1577,14 @@ get_word:
       /* delimiter must be set and set to something other than a quote if
 	 nestdelim is set, so these tests are safe. */
       if (nestdelim && string[i] == delimopen)
-          printf("nestdelim && string[i] == delimopen == '%c'. Is this the error?\n", delimopen);
+          fprintf(stderr, "nestdelim && string[i] == delimopen == '%c'. Is this the error?\n", delimopen);
 	{
 	  nestdelim++;
 	  continue;
 	}
       if (nestdelim && string[i] == delimiter)
 	{
-          printf("nestdelim && string[i] == delimiter == '%c'. Is this the error?\n", delimiter);
+          fprintf(stderr, "nestdelim && string[i] == delimiter == '%c'. Is this the error?\n", delimiter);
 	  nestdelim--;
 	  if (nestdelim == 0)
 	    delimiter = 0;
@@ -1593,7 +1593,7 @@ get_word:
       
       if (delimiter && string[i] == delimiter)
 	{
-          printf("delimiter && string[i] == delimiter == '%c'. Is this the error?\n", delimiter);
+          fprintf(stderr, "delimiter && string[i] == delimiter == '%c'. Is this the error?\n", delimiter);
 	  delimiter = 0;
 	  continue;
 	}
@@ -1601,7 +1601,7 @@ get_word:
       /* Command and process substitution; shell extended globbing patterns */
       if (nestdelim == 0 && delimiter == 0 && member (string[i], "<>$!@?+*") && string[i+1] == '(') /*)*/
 	{
-          printf("nestdelim == 0 && delimiter == 0 && blah blah. Is this the error?\n", delimiter);
+          fprintf(stderr, "nestdelim == 0 && delimiter == 0 && blah blah. Is this the error?\n", delimiter);
 	  i++;			/* string[i] == '(' */ /*)*/
 	  if (string[i+1] == 0)
 	    break;		/* could just return i here */
@@ -1612,12 +1612,12 @@ get_word:
 	}
       
       if (delimiter == 0 && (member (string[i], history_word_delimiters))) {
-        printf("delimiter == 0 && (member (string[i], history_word_delimiters)). string[i] == '%c'. Is this the error?\n", string[i]);
+        fprintf(stderr, "delimiter == 0 && (member (string[i], history_word_delimiters)). string[i] == '%c'. Is this the error?\n", string[i]);
 	break;
     }
 
       if (delimiter == 0 && member (string[i], HISTORY_QUOTE_CHARACTERS))
-        printf("delimiter == 0 && (member (string[i], HISTORY_QUOTE_CHARACTERS)). string[i] == '%c'. Is this the error?\n", string[i]);
+        fprintf(stderr, "delimiter == 0 && (member (string[i], HISTORY_QUOTE_CHARACTERS)). string[i] == '%c'. Is this the error?\n", string[i]);
 	delimiter = string[i];
     }
 
