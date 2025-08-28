@@ -1003,6 +1003,48 @@ history_expand (const char *hstring, char **output)
 #endif /* HANDLE_MULTIBYTE */
 
 	  cc = string[i + 1];
+
+      /* Skip a full $( ... ) block (supports nesting), treating single-quoted
+         regions inside as opaque, and skipping over whole case...esac blocks.
+         This prevents '!' inside those regions from being seen by the outer scan. */
+      if (string[i] == '$' && string[i+1] == '(')
+        {
+          int di = i + 2;    /* after "$(" */
+          int ddepth = 1;    /* $(...) nesting */
+          while (string[di] && ddepth > 0)
+            {
+              /* single-quoted block */
+              if (string[di] == '\'')
+                {
+                  int idx = di + 1;
+                  hist_string_extract_single_quoted (string, &idx, 0);
+                  di = (string[idx] == '\'') ? idx + 1 : idx;
+                  continue;
+                }
+              /* nested $(...) */
+              if (string[di] == '$' && string[di+1] == '(')
+                { di += 2; ddepth++; continue; }
+              /* skip an entire case...esac block inside $(...) */
+              if (string[di] == 'c' && strncmp (string + di, "case", 4) == 0)
+                {
+                  int cdepth = 0;
+                  while (string[di])
+                    {
+                      if (string[di] == '\'') { int idx2 = di + 1; hist_string_extract_single_quoted (string, &idx2, 0); di = (string[idx2]=='\'') ? idx2+1 : idx2; continue; }
+                      if (string[di] == '$' && string[di+1] == '(') { di += 2; ddepth++; continue; }
+                      if (strncmp (string + di, "case", 4) == 0) { cdepth++; di += 4; continue; }
+                      if (strncmp (string + di, "esac", 4) == 0) { cdepth--; di += 4; if (cdepth <= 0) break; continue; }
+                      di++;
+                    }
+                  continue;
+                }
+              if (string[di] == ')') { ddepth--; di++; continue; }
+              di++;
+            }
+          i = di - 1; /* for-loop will ++i */
+          continue;
+        }
+
 	  /* The history_comment_char, if set, appearing at the beginning
 	     of a word signifies that the rest of the line should not have
 	     history expansion performed on it.
@@ -1141,6 +1183,46 @@ history_expand (const char *hstring, char **output)
 	tchar = -3;
       else if (tchar == history_comment_char)
 	tchar = -2;
+
+     /* During emit, if we encounter $( ... ), copy it verbatim as a unit
+        (handling nested $(...) and case...esac inside) so that any internal
+        '!' never triggers history expansion. */
+     if (string[i] == '$' && string[i+1] == '(')
+       {
+         int di = i + 2;    /* after "$(" */
+         int ddepth = 1;
+         while (string[di] && ddepth > 0)
+           {
+             if (string[di] == '\'')
+               {
+                 int idx = di + 1;
+                 hist_string_extract_single_quoted (string, &idx, 0);
+                 /* copy quoted region (including quotes) */
+                 while (di <= ((string[idx] == '\'') ? idx : idx - 1))
+                   { ADD_CHAR (string[di]); di++; }
+                 continue;
+               }
+             if (string[di] == '$' && string[di+1] == '(')
+               { ADD_CHAR (string[di]); ADD_CHAR (string[di+1]); di += 2; ddepth++; continue; }
+             if (string[di] == 'c' && strncmp (string + di, "case", 4) == 0)
+               {
+                 int cdepth = 0;
+                 do {
+                   if (string[di] == '\'') { int idx2 = di + 1; hist_string_extract_single_quoted (string, &idx2, 0); while (di <= ((string[idx2]=='\'') ? idx2 : idx2-1)) { ADD_CHAR (string[di]); di++; } }
+                   else if (string[di] == '$' && string[di+1] == '(') { ADD_CHAR (string[di]); ADD_CHAR (string[di+1]); di += 2; ddepth++; }
+                   else if (strncmp (string + di, "case", 4) == 0) { ADD_CHAR('c'); ADD_CHAR('a'); ADD_CHAR('s'); ADD_CHAR('e'); di += 4; cdepth++; }
+                   else if (strncmp (string + di, "esac", 4) == 0) { ADD_CHAR('e'); ADD_CHAR('s'); ADD_CHAR('a'); ADD_CHAR('c'); di += 4; cdepth--; }
+                   else { ADD_CHAR (string[di]); di++; }
+                 } while (string[di] && cdepth > 0);
+                 continue;
+               }
+             ADD_CHAR (string[di]);
+             if (string[di] == ')') { ddepth--; }
+             di++;
+           }
+         i = di - 1; /* for-loop will ++i */
+         continue;
+       }
 
       switch (tchar)
 	{
