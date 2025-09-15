@@ -974,6 +974,9 @@ history_expand (const char *hstring, char **output)
       squote = history_quoting_state == '\'';
       fprintf(stderr, "history_quoting_state='%c', dquote=%d, squote=%d\n", history_quoting_state, (int)dquote, (int)squote);
 
+      fprintf(stderr, "DEBUG: history_expand initial state: history_quoting_state=%d ('%c'), dquote=%d, squote=%d, string='%s'\n", 
+              history_quoting_state, history_quoting_state ? history_quoting_state : '0', dquote, squote, hstring);
+
       /* If the calling application tells us we are already reading a
 	 single-quoted string, consume the rest of the string right now
 	 and then go on. */
@@ -1018,15 +1021,22 @@ history_expand (const char *hstring, char **output)
 	    }
 	  else if (string[i] == history_expansion_char)
 	    {
+	      fprintf(stderr, "DEBUG: Found history_expansion_char at pos %d, cc='%c', dquote=%d, squote=%d\n", i, cc, dquote, squote);
 	      if (cc == 0 || member (cc, history_no_expand_chars))
-		continue;
+		{
+		  fprintf(stderr, "DEBUG: Skipping expansion - cc is 0 or in no_expand_chars\n");
+		  continue;
+		}
 	      /* DQUOTE won't be set unless history_quotes_inhibit_expansion
 		 is set.  The idea here is to treat double-quoted strings the
 		 same as the word outside double quotes; in effect making the
 		 double quote part of history_no_expand_chars when DQUOTE is
 		 set. */
 	      else if (dquote && cc == '"')
-		continue;
+		{
+		  fprintf(stderr, "DEBUG: Skipping expansion - dquote && cc == '\"'\n");
+		  continue;
+		}
 	      /* If the calling application has set
 		 history_inhibit_expansion_function to a function that checks
 		 for special cases that should not be history expanded,
@@ -1034,9 +1044,15 @@ history_expand (const char *hstring, char **output)
 		 non-zero value. */
 	      else if (history_inhibit_expansion_function &&
 			(*history_inhibit_expansion_function) (string, i))
-		continue;
+		{
+		  fprintf(stderr, "DEBUG: Skipping expansion - inhibit_expansion_function returned non-zero\n");
+		  continue;
+		}
 	      else
-		break;
+		{
+		  fprintf(stderr, "DEBUG: Breaking to perform expansion\n");
+		  break;
+		}
 	    }
 	  /* Shell-like quoting: allow backslashes to quote double quotes
 	     inside a double-quoted string. */

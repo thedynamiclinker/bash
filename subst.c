@@ -2465,8 +2465,104 @@ skip_to_histexp (const char *string, int start, const char *delims, int flags)
         }
       else if (histexp_comsub && c == RPAREN)
 	{
-	  histexp_comsub--;
-	  dquote = old_dquote;
+	  fprintf(stderr, "DEBUG: skip_to_histexp found RPAREN at pos %zu, histexp_comsub=%d\n", i, histexp_comsub);
+	  
+	  /* Check if this ')' is part of a case pattern like 'pattern)' rather than
+	     the closing ')' of a command substitution. We do this by looking backwards
+	     to see if we're in a case statement context. */
+	  int is_case_pattern = 0;
+	  if (histexp_comsub == 1) /* Only check for outermost command substitution */
+	    {
+	      size_t j;
+	      int found_case = 0, found_in = 0, found_semi_semi = 0;
+	      int paren_depth = 0;
+	      
+	      fprintf(stderr, "DEBUG: Checking if RPAREN at pos %zu is case pattern\n", i);
+	      
+	      /* Look backwards from current position to find context.
+	         We need to find if we're inside a case statement that hasn't been closed. */
+	      for (j = i; j > 0; j--)
+		{
+		  char c = string[j-1]; /* Look at character before current position */
+		  
+		  /* Track parentheses depth to find our command substitution boundary */
+		  if (c == RPAREN)
+		    paren_depth++;
+		  else if (c == LPAREN)
+		    {
+		      if (paren_depth > 0)
+			paren_depth--;
+		      else if (j > 1 && string[j-2] == '$')
+			{
+			  /* Found the opening of our command substitution */
+			  fprintf(stderr, "DEBUG: Found opening $( at pos %zu\n", j-2);
+			  break;
+			}
+		    }
+		  
+		  /* Only check for keywords when we're outside nested parentheses */
+		  if (paren_depth == 0)
+		    {
+		      /* Check for 'esac' - this ends a case statement */
+		      if (j >= 4 && strncmp(string + j - 4, "esac", 4) == 0 &&
+			  (j == 4 || !isalnum(string[j-5])) &&
+			  (j >= slen || !isalnum(string[j])))
+			{
+			  fprintf(stderr, "DEBUG: Found 'esac' at pos %zu\n", j-4);
+			  found_semi_semi = 1;
+			  break;
+			}
+		      
+		      /* Check for ';;' - this ends a case clause */
+		      if (j >= 2 && string[j-2] == ';' && string[j-1] == ';')
+			{
+			  fprintf(stderr, "DEBUG: Found ';;' at pos %zu\n", j-2);
+			  found_semi_semi = 1;
+			  break;
+			}
+		      
+		      /* Check for 'in' keyword */
+		      if (j >= 2 && strncmp(string + j - 2, "in", 2) == 0 &&
+			  (j == 2 || !isalnum(string[j-3])) &&
+			  (j >= slen || !isalnum(string[j])))
+			{
+			  fprintf(stderr, "DEBUG: Found 'in' at pos %zu\n", j-2);
+			  found_in = 1;
+			}
+		      
+		      /* Check for 'case' keyword */
+		      if (j >= 4 && strncmp(string + j - 4, "case", 4) == 0 &&
+			  (j == 4 || !isalnum(string[j-5])) &&
+			  (j >= slen || !isalnum(string[j])))
+			{
+			  fprintf(stderr, "DEBUG: Found 'case' at pos %zu\n", j-4);
+			  found_case = 1;
+			}
+		    }
+		}
+	      
+	      /* If we found 'case...in' but no ';;' or 'esac', this is likely a case pattern */
+	      if (found_case && found_in && !found_semi_semi)
+		{
+		  fprintf(stderr, "DEBUG: Detected case pattern - not decrementing histexp_comsub\n");
+		  is_case_pattern = 1;
+		}
+	      else
+		{
+		  fprintf(stderr, "DEBUG: Not a case pattern (case=%d, in=%d, semi_semi=%d)\n", 
+			  found_case, found_in, found_semi_semi);
+		}
+	    }
+	  else
+	    {
+	      fprintf(stderr, "DEBUG: Not checking case pattern (histexp_comsub=%d)\n", histexp_comsub);
+	    }
+	  
+	  if (!is_case_pattern)
+	    {
+	      histexp_comsub--;
+	      dquote = old_dquote;
+	    }
 	  i++;
 	  continue;
 	}

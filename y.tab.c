@@ -5014,6 +5014,24 @@ shell_getc (int remove_quoted_newline)
 	    history_quoting_state = '"';
 	  else
 	    history_quoting_state = 0;
+	  /* Special case: if we're in a command substitution and the parser
+	     state indicates we were in a case pattern, we might have lost
+	     track of the outer double-quote context. Check if we should be
+	     in double-quote context based on the delimiter stack depth. */
+	  if (history_quoting_state == 0 && (parser_state & PST_CMDSUBST) && 
+	      dstack.delimiter_depth > 0)
+	    {
+	      int i;
+	      /* Look through the delimiter stack for a double quote */
+	      for (i = 0; i < dstack.delimiter_depth; i++)
+		{
+		  if (dstack.delimiters[i] == '"')
+		    {
+		      history_quoting_state = '"';
+		      break;
+		    }
+		}
+	    }
 #  endif
 	  /* Calling with a third argument of 1 allows remember_on_history to
 	     determine whether or not the line is saved to the history list */

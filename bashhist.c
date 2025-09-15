@@ -221,22 +221,37 @@ bash_history_inhibit_expansion (char *string, int i)
   hx[0] = history_expansion_char;
   hx[1] = '\0';
 
+  fprintf(stderr, "DEBUG: bash_history_inhibit_expansion called: string='%s', i=%d, history_quoting_state=%d\n", 
+          string, i, history_quoting_state);
+
   /* The shell uses ! as a pattern negation character in globbing [...]
      expressions, so let those pass without expansion. */
   if (i > 0 && (string[i - 1] == '[') && member (']', string + i + 1))
-    return (1);
+    {
+      fprintf(stderr, "DEBUG: Inhibiting - glob pattern negation\n");
+      return (1);
+    }
   /* The shell uses ! as the indirect expansion character, so let those
      expansions pass as well. */
   else if (i > 1 && string[i - 1] == '{' && string[i - 2] == '$' &&
 	     member ('}', string + i + 1))
-    return (1);
+    {
+      fprintf(stderr, "DEBUG: Inhibiting - indirect expansion\n");
+      return (1);
+    }
   /* The shell uses $! as a defined parameter expansion. */
   else if (i > 1 && string[i - 1] == '$' && string[i] == '!')
-    return (1);
+    {
+      fprintf(stderr, "DEBUG: Inhibiting - $! parameter expansion\n");
+      return (1);
+    }
 #if defined (EXTENDED_GLOB)
   /* This is on all the time now; see bash_history_no_expand_characters above */
   else if (extended_glob && i > 1 && string[i+1] == '(' && member (')', string + i + 2))
-    return (1);
+    {
+      fprintf(stderr, "DEBUG: Inhibiting - extended glob\n");
+      return (1);
+    }
 #endif
 
   si = 0;
@@ -244,28 +259,41 @@ bash_history_inhibit_expansion (char *string, int i)
      single-quoted part and then look at what's left. */
   if (history_quoting_state == '\'')
     {
+      fprintf(stderr, "DEBUG: In single-quoted string, skipping\n");
       si = skip_to_delim (string, 0, "'", SD_NOJMP|SD_HISTEXP);
       if (string[si] == 0 || si >= i)
-	return (1);
+	{
+	  fprintf(stderr, "DEBUG: Inhibiting - single quote context\n");
+	  return (1);
+	}
       si++;
     }
 
   /* Make sure the history expansion should not be skipped by quoting or
      command/process substitution. */
+  fprintf(stderr, "DEBUG: Calling skip_to_histexp from si=%d\n", si);
   if ((t = skip_to_histexp (string, si, hx, SD_NOJMP|SD_HISTEXP)) > 0)
     {
+      fprintf(stderr, "DEBUG: skip_to_histexp returned t=%d, i=%d\n", t, i);
       /* Skip instances of history expansion appearing on the line before
 	 this one. */
       while (t < i)
 	{
 	  t = skip_to_histexp (string, t+1, hx, SD_NOJMP|SD_HISTEXP);
 	  if (t <= 0)
-	    return 0;
+	    {
+	      fprintf(stderr, "DEBUG: Not inhibiting - skip_to_histexp returned <= 0\n");
+	      return 0;
+	    }
 	}
+      fprintf(stderr, "DEBUG: %s - t > i (%d > %d)\n", (t > i) ? "Inhibiting" : "Not inhibiting", t, i);
       return (t > i);
     }
   else
-    return (0);
+    {
+      fprintf(stderr, "DEBUG: Not inhibiting - skip_to_histexp returned <= 0\n");
+      return (0);
+    }
 }
 #endif
 
