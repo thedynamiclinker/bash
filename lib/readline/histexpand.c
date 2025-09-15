@@ -972,6 +972,7 @@ history_expand (const char *hstring, char **output)
 	 is NOT an expansion. */
       dquote = history_quoting_state == '"';
       squote = history_quoting_state == '\'';
+      fprintf(stderr, "history_quoting_state='%c', dquote=%d, squote=%d\n", history_quoting_state, (int)dquote, (int)squote);
 
       /* If the calling application tells us we are already reading a
 	 single-quoted string, consume the rest of the string right now
@@ -1047,11 +1048,14 @@ history_expand (const char *hstring, char **output)
 	     quotes are not special inside double-quoted strings. */
 	  else if (history_quotes_inhibit_expansion && string[i] == '"')
 	    {
+
 	      dquote = 1 - dquote;
+          fprintf(stderr, "More shell-like quoting section, now dquote=%d, squote=%d, string[i=%d]=%s\n", dquote, squote, i, (char *)&string[i]);
 	    }
 	  else if (dquote == 0 && history_quotes_inhibit_expansion && string[i] == '\'')
 	    {
 	      /* If this is bash, single quotes inhibit history expansion. */
+              fprintf(stderr, "If this is bash section, now dquote=%d, squote=%d, string[i=%d]=%s\n", dquote, squote, i, (char *)&string[i]);
 	      flag = (i > 0 && string[i - 1] == '$');
 	      i++;
 	      hist_string_extract_single_quoted (string, &i, flag);
@@ -1083,6 +1087,7 @@ history_expand (const char *hstring, char **output)
   dquote = history_quoting_state == '"';
   squote = history_quoting_state == '\'';
 
+  fprintf(stderr, "Extract and perform the substitution, now dquote=%d, squote=%d, string[i=%d]=%s\n", dquote, squote, i, (char *)&string[i]);
   /* If the calling application tells us we are already reading a
      single-quoted string, consume the rest of the string right now
      and then go on. */
@@ -1156,6 +1161,8 @@ history_expand (const char *hstring, char **output)
 	case '"':
 	  dquote = 1 - dquote;
 	  ADD_CHAR (tchar);
+
+          fprintf(stderr, "Case doublequote, now dquote=%d, squote=%d, string[i=%d]=%s\n", dquote, squote, i, (char *)&string[i]);
 	  break;
 	  
 	case '\'':
@@ -1163,6 +1170,7 @@ history_expand (const char *hstring, char **output)
 	    /* If history_quotes_inhibit_expansion is set, single quotes
 	       inhibit history expansion, otherwise they are treated like
 	       double quotes. */
+            fprintf(stderr, "Case singlequote, now dquote=%d, squote=%d, string[i=%d]=%s\n", dquote, squote, i, (char *)&string[i]);
 	    if (squote)
 	      {
 	        squote = 0;
@@ -1208,6 +1216,8 @@ history_expand (const char *hstring, char **output)
 	  break;
 
 	case -3:		/* history_expansion_char */
+
+          fprintf(stderr, "Case history_expansion_char, now dquote=%d, squote=%d, string[i=%d]=%s\n", dquote, squote, i, (char *)&string[i]);
 	  cc = string[i + 1];
 
 	  /* If the history_expansion_char is followed by one of the
@@ -1612,7 +1622,7 @@ get_word:
 	}
       
       if (delimiter == 0 && (member (string[i], history_word_delimiters))) {
-        fprintf(stderr, "delimiter == 0 && (member (string[i], history_word_delimiters)). string[i] == '%c'. Is this the error?\n", string[i]);
+        fprintf(stderr, "delimiter == 0 && (member (string[i], history_word_delimiters)). string[i] == '%s'. Is this the error?\n", string[i]);
 	break;
     }
 
@@ -1665,6 +1675,7 @@ history_tokenize_internal (const char *string, int wind, int *indp)
 
       start = i;
 
+      fprintf(stderr, "calling history_tokenize_word, string=%s, start=%d\n", string, start);
       i = history_tokenize_word (string, start);
 
       /* If we have a non-whitespace delimiter character (which would not be
