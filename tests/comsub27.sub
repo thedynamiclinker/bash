@@ -1,0 +1,24 @@
+# Verify that 'case ... esac' inside comsub doesn't print
+# to stderr from incorrectly performing history expansion
+# in interactive mode
+
+: ${THIS_SH:=./bash}
+
+file=$(mktemp)
+
+cat > $file << 'EOF'
+echo "$(case a in b) echo 'hi!';; esac)"
+EOF
+
+output="$($THIS_SH -i $file 2>&1)"
+
+rm -f "$file"
+
+# assert: stderr must have been empty
+if [[ -n "$output" ]]; then
+    echo "FAIL: stderr not empty" >&2
+    cat "stderr='$stderr'" >&2
+    exit 1
+fi
+
+exit 0
