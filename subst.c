@@ -2465,64 +2465,18 @@ skip_to_histexp (const char *string, int start, const char *delims, int flags)
         }
       else if (histexp_comsub && c == RPAREN)
 	{
-	  // fprintf(stderr, "DEBUG: skip_to_histexp found RPAREN at pos %zu, histexp_comsub=%d\n", i, histexp_comsub);
-
 	  /* Check if this ')' is part of a case pattern like 'pattern)' rather than
 	     the closing ')' of a command substitution. We do this by looking backwards
-	     to see if we're in a case statement context. */
-	  int is_case_pattern = 0;
-	  if (histexp_comsub == 1) /* Only check for outermost command substitution */
-	    {
-	      size_t j;
-	      int found_case = 0, found_esac = 0;
-	      int paren_depth = 0;
-	      
-	      /* Look backwards from current position to find context.
-	         We need to find if we're inside a case statement that hasn't been closed. */
-	      for (j = i; j > 0; j--)
-		{
-		  char c = string[j-1]; /* Look at character before current position */
-		  
-		  /* Track parentheses depth to find our command substitution boundary */
-/*
-		  if (c == RPAREN)
-		    paren_depth++;
-		  else if (c == LPAREN)
-		    {
-		      if (paren_depth > 0)
-			paren_depth--;
-		      else if (j > 1 && string[j-2] == '$')
-			{
-			  break;
-			}
-		    }
-*/		  
-		  /* Only check for keywords when we're outside nested parentheses */
-		  //if (paren_depth == 0)
-		  //  {
-		      /* Check for 'esac' - this ends a case statement */
-		      if (j >= 4 && strncmp(string + j - 4, "esac", 4) == 0)
-			{
-			  found_esac = 1;
-			  break;
-			}
-		      
-		      /* Check for 'case' keyword */
-		      if (j >= 4 && strncmp(string + j - 4, "case", 4) == 0)
-			{
-			  found_case = 1;
-			}
-		    //}
-		}
-	      
-	      /* If we found 'case' but no 'esac', we're most likely inside case */
-	      if (found_case && !found_esac)
-		{
-		  is_case_pattern = 1;
-		}
-	    }
-	  
-	  if (!is_case_pattern)
+	     to see if we seem to be in a case statement context. */
+	  int in_case_statement = 0;
+	  char *CASE = strstr(string, "case");
+	  char *ESAC = strstr(string, "esac");
+
+          if ((CASE && CASE < (string + i)) && (!ESAC || (string + i) < ESAC)) {
+	      in_case_statement = 1;
+          }
+
+	  if (!in_case_statement)
 	    {
 	      histexp_comsub--;
 	      dquote = old_dquote;
