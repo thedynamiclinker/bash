@@ -2465,8 +2465,22 @@ skip_to_histexp (const char *string, int start, const char *delims, int flags)
         }
       else if (histexp_comsub && c == RPAREN)
 	{
-	  histexp_comsub--;
-	  dquote = old_dquote;
+	  /* Check if this ')' is part of a case pattern like 'pattern)' rather than
+	     the closing ')' of a command substitution. We do this by looking backwards
+	     to see if we seem to be in a case statement context. */
+	  int in_case_statement = 0;
+	  char *CASE = strstr(string, "case");
+	  char *ESAC = strstr(string, "esac");
+
+          if ((CASE && CASE < (string + i)) && (!ESAC || (string + i) < ESAC)) {
+	      in_case_statement = 1;
+          }
+
+	  if (!in_case_statement)
+	    {
+	      histexp_comsub--;
+	      dquote = old_dquote;
+	    }
 	  i++;
 	  continue;
 	}
