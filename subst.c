@@ -2465,9 +2465,9 @@ skip_to_histexp (const char *string, int start, const char *delims, int flags)
         }
       else if (histexp_comsub && c == RPAREN)
 	{
-	  /* Check if this ')' is part of a case pattern like 'pattern)' rather than
-	     the closing ')' of a command substitution. We do this by looking backwards
-	     to see if we seem to be in a case statement context. */
+	/* We've hit a ')', so do a heuristic check to see if it's likely
+	   to be part of a case pattern like 'this)', rather than the
+	   closing ')' of a comsub. This heuristic could be improved. */
 	  int in_case_statement = 0;
 	  char *CASE = strstr(string, "case");
 	  char *ESAC = strstr(string, "esac");
