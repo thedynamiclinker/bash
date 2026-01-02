@@ -2487,8 +2487,22 @@ skip_to_histexp (const char *string, int start, const char *delims, int flags)
         }
       else if (histexp_comsub && c == RPAREN)
 	{
-	  histexp_comsub--;
-	  dquote = old_dquote;
+	/* We've hit a ')', so do a heuristic check to see if it's likely
+	   to be part of a case pattern like 'this)', rather than the
+	   closing ')' of a comsub. This heuristic could be improved. */
+	  int in_case_statement = 0;
+	  char *CASE = strstr(string, "case");
+	  char *ESAC = strstr(string, "esac");
+
+          if ((CASE && CASE < (string + i)) && (!ESAC || (string + i) < ESAC)) {
+	      in_case_statement = 1;
+          }
+
+	  if (!in_case_statement)
+	    {
+	      histexp_comsub--;
+	      dquote = old_dquote;
+	    }
 	  i++;
 	  continue;
 	}
